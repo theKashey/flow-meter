@@ -6,6 +6,11 @@ HTTP/HTTPS/HTTP2 stream meter
 - reports about every important moment of data flow
 - reports timing till major HTTP tags
 
+## Usage
+
+- ⛔️ CLI - not yet supported. 
+- ✅ `import {meter} from 'flow-meter'`
+
 ```js
 meter('https://theurge.com.au', {
    http2: true,
@@ -79,6 +84,7 @@ meter('https://shoptheurge.co.nz/', {
   chunks: 40,
   rawChunks: 25           <-- less chunks!
 }
+```
 
 # License
 MIT
