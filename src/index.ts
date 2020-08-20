@@ -3,7 +3,7 @@ import {meter} from "./meter";
 export {meter};
 
 
-// meter('https://theurge.com.au', {
+// meter('https://shoptheurge.co.nz/', {
 //   http2: true,
-//   compression: 'gzip',
+//   compression: 'brotli',
 // }).then(console.log)
