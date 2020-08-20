@@ -1,12 +1,13 @@
 {
   "name": "flow-meter",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "dist/index.js",
   "license": "MIT",
   "bin": "dist/cli.js",
   "scripts": {
     "build": "tsc",
-    "test": "ts-node ./src/index.ts"
+    "test": "ts-node ./src/index.ts",
+    "prepublish": "yarn build"
   },
   "dependencies": {
     "@types/node": "^14.6.0",
