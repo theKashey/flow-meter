@@ -1,0 +1,1 @@
+export const now = () => Date.now(); // TODO: try process.hrtime()
