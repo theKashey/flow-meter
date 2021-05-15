@@ -2,22 +2,30 @@ Flow Meter (WIP)
 ===
 
 HTTP/HTTPS/HTTP2 stream meter
+
 - supports gzip/brotly compression
 - reports about every important moment of data flow
 - reports timing till major HTTP tags
 
 ## Usage
 
-- ⛔️ CLI - not yet supported. 
+### CLI
+
+`flow-meter <url>`
+
+### API
+
 - ✅ `import {meter} from 'flow-meter'`
 
 ```js
 meter('https://theurge.com.au', {
-   http2: true,
-   compression: 'gzip',
+  http2: true,
+  compression: 'gzip',
 }).then(console.log)
 ```
+
 ⬇️ ⬇️ ⬇️ ⬇️
+
 ```text
 {
   preflight: { 
@@ -57,7 +65,9 @@ meter('https://shoptheurge.co.nz/', {
   compression: 'brotli',
 }).then(console.log)
 ```
+
 ⬇️ ⬇️ ⬇️ ⬇️
+
 ```text
 {
   preflight: * the same *,
@@ -87,4 +97,5 @@ meter('https://shoptheurge.co.nz/', {
 ```
 
 # License
+
 MIT
