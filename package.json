@@ -1,6 +1,6 @@
 {
   "name": "flow-meter",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "license": "MIT",
   "bin": {
