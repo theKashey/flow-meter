@@ -44,8 +44,6 @@ export const makeHTTP2Request:ConnectorFabric = ({compression, ...parameters}, o
       ':path': parameters.path || '/',
     }
 
-    console.log(requestPayload);
-
     const request: http2.ClientHttp2Stream = client
       .request(requestPayload)
       .on('response', (headers: Headers) => {
@@ -72,7 +70,6 @@ export const makeHTTP1Request:ConnectorFabric = ({compression, ...parameters}, o
   new Promise<RequestConnectionResponse>((resolve, reject) => {
     const protocol = parameters.protocol === 'https:' ? https : http;
 
-    console.log(parameters);
     protocol
       .request(parameters, response => {
         resolve(response);

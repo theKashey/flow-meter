@@ -12,6 +12,7 @@ interface MeterOptions {
   verbose?: boolean;
   compression?: CompressionOptions;
   onChunk?: (data: Buffer, times: FlowTimes) => void;
+  onConsole?: (message: string) => void;
 }
 
 /**
@@ -107,6 +108,11 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
 
     const compression = options.compression && options.compression !== 'none' ? options.compression : undefined;
 
+    const report = (message: string): void => {
+      options.verbose && console.log(message);
+      options.onConsole && console.log(message);
+    }
+
     const connection = await factory(
       {
         method: 'GET',
@@ -120,16 +126,17 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
       },
       socket => {
         socket.on('lookup', () => {
-          options.verbose && console.log(delta(), 'dns');
+          report(delta() + ' dns');
           dnsTimes.dnsLookup = now();
         })
         socket.on('connect', () => {
-          options.verbose && console.log(delta(), 'connect');
+          report(delta() + ' connect');
+
           dataTimes.start = now();
           dnsTimes.tcpConnection = now();
         })
         socket.on('secureConnect', () => {
-          options.verbose && console.log(delta(), 'handshake');
+          report(delta() + ' handshake');
           dataTimes.start = now();
           dnsTimes.tlsHandshake = now();
         })
@@ -137,7 +144,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
       (buffer) => {
         if (!dataTimes.rawFirstByte) {
           dataTimes.rawFirstByte = now();
-          options.verbose && console.log(delta(), 'first byte', buffer.length);
+          report(delta() + ' first byte (' + buffer.length + ' bytes)');
         }
 
         rawBytesReceived += buffer.length;
@@ -150,7 +157,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
         if (!dataTimes.firstByte) {
           dataTimes.firstByte = now();
           htmlTimes.firstByte = now();
-          options.verbose && console.log(delta(), 'readable', buffer.length);
+          report(delta() + ' readable (' + buffer.length + ' bytes)');
         }
         htmlHook(buffer, htmlTimes);
 
@@ -162,7 +169,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
         })
       },
       () => {
-        options.verbose && console.log(delta(), 'end');
+        report(delta() + ' end');
         dataTimes.end = now();
         //
         //
@@ -185,6 +192,6 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
     );
 
     // times.connected = now();
-    options.verbose && console.log(delta(), '>>', url, connection.statusCode, connection.httpVersion, compression);
+    report(`${delta()} >> ${url} ${connection.statusCode} v${connection.httpVersion} ${compression}`);
   })
 );
