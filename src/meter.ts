@@ -110,7 +110,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
 
     const report = (message: string): void => {
       options.verbose && console.log(message);
-      options.onConsole && console.log(message);
+      options.onConsole && options.onConsole(message);
     }
 
     const connection = await factory(
