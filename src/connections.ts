@@ -6,8 +6,9 @@ import {getOrigin} from "./utils";
 import {CompressionOptions, handleCompression} from "./compression";
 import {ChunkCallback, EndCallback, SocketCallback} from "./types";
 
-export interface RequestParameters extends ClientRequestArgs {
+export type RequestParameters = ClientRequestArgs & {
   protocol: string;
+  headers :Record<string, string>;
   compression?: CompressionOptions;
 }
 
@@ -19,7 +20,9 @@ interface RequestConnectionResponse {
   statusCode?: number;
 }
 
-export const makeHTTP2Request = ({compression, ...parameters}: RequestParameters, onSocket: SocketCallback, onRawChunk: ChunkCallback, onDecodedChunk: ChunkCallback, onEnd: EndCallback) => (
+export type ConnectorFabric = (request: RequestParameters, onSocket: SocketCallback, onRawChunk: ChunkCallback, onDecodedChunk: ChunkCallback, onEnd: EndCallback)=>Promise<RequestConnectionResponse>;
+
+export const makeHTTP2Request:ConnectorFabric = ({compression, ...parameters}, onSocket, onRawChunk, onDecodedChunk, onEnd) => (
   new Promise<RequestConnectionResponse>((resolve, reject) => {
     const origin = getOrigin(parameters)
     const client = http2
@@ -33,14 +36,18 @@ export const makeHTTP2Request = ({compression, ...parameters}: RequestParameters
     const {host, ...customHeaders} = headers as any;
     let decoded = false;
 
+    const requestPayload = {
+      ...customHeaders,
+      // target,
+      ':authority': host,
+      ':method': parameters.method || 'GET',
+      ':path': parameters.path || '/',
+    }
+
+    console.log(requestPayload);
+
     const request: http2.ClientHttp2Stream = client
-      .request({
-        ...customHeaders,
-        ...target,
-        // ':authority': host,
-        ':method': parameters.method || 'GET',
-        ':path': parameters.path || '/',
-      } as any)
+      .request(requestPayload)
       .on('response', (headers: Headers) => {
         const statusCode: number = headers[':status'] as any;
         resolve({headers, httpVersion: '2.0', statusCode});
@@ -61,10 +68,11 @@ export const makeHTTP2Request = ({compression, ...parameters}: RequestParameters
   })
 )
 
-export const makeHTTP1Request = ({compression, ...parameters}: RequestParameters, onSocket: SocketCallback, onRawChunk: ChunkCallback, onDecodedChunk: ChunkCallback, onEnd: EndCallback) => (
+export const makeHTTP1Request:ConnectorFabric = ({compression, ...parameters}, onSocket, onRawChunk, onDecodedChunk, onEnd) => (
   new Promise<RequestConnectionResponse>((resolve, reject) => {
     const protocol = parameters.protocol === 'https:' ? https : http;
 
+    console.log(parameters);
     protocol
       .request(parameters, response => {
         resolve(response);

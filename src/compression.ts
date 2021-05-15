@@ -4,10 +4,11 @@ import {ChunkCallback, EndCallback} from "./types";
 
 export const COMPRESSION_HEADER: Record<CompressionOptions, string> = {
   'gzip': 'gzip',
-  'brotli': 'br'
+  'brotli': 'br',
+  none: ''
 };
 
-export type CompressionOptions = 'gzip' | 'brotli';
+export type CompressionOptions = 'gzip' | 'brotli' | 'none';
 
 export const createDecompressor = (compression: CompressionOptions) => {
   switch (compression) {

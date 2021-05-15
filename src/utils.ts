@@ -29,7 +29,7 @@ export const canUseHTTP2 = (scheme: string) => scheme === 'https:';
  */
 export const cloneURL = ({hostname, pathname, port, protocol, search}: URL) => ({
   hostname,
-  pathname,
+  path: pathname,
   port,
   protocol,
   search,

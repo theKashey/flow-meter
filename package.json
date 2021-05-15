@@ -3,7 +3,9 @@
   "version": "0.0.2",
   "main": "dist/index.js",
   "license": "MIT",
-  "bin": "dist/cli.js",
+  "bin": {
+    "flow-meter": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "ts-node ./src/index.ts",
@@ -11,6 +13,7 @@
   },
   "dependencies": {
     "@types/node": "^14.6.0",
+    "commander": "^7.2.0",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.7"
   }

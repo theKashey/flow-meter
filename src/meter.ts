@@ -1,4 +1,4 @@
-import {makeHTTP1Request, makeHTTP2Request} from "./connections";
+import {ConnectorFabric, makeHTTP1Request, makeHTTP2Request} from "./connections";
 import {canUseHTTP2, cloneURL} from "./utils";
 import {COMPRESSION_HEADER, CompressionOptions} from "./compression";
 import {now} from "./time";
@@ -18,20 +18,20 @@ interface MeterOptions {
  * Connection Pre-flight timings;
  */
 interface PreflightMeter {
- dnsLookup: number;
- tcpConnection: number;
- tlsHandshake: number;
- total: number;
+  dnsLookup: number;
+  tcpConnection: number;
+  tlsHandshake: number;
+  '::total': number;
 }
 
 /**
  * Data timings.
  */
 interface DataMeter {
- rawFirstByte: number;
- firstByte: number;
- end: number;
- total: number;
+  rawFirstByte: number;
+  firstByte: number;
+  end: number;
+  '::total': number;
 }
 
 /**
@@ -55,7 +55,7 @@ interface FirstByte {
   firstByte: number;
 }
 
-export const flattenFlowTimes = <T extends { total: number}> (times: FlowTimes) => {
+export const flattenFlowTimes = <T extends { '::total': number }>(times: FlowTimes) => {
   const steps = Object.entries(times);
   const flatten = steps
     .map(([key, value], index) => index === 0 ? [key, 0] : [key, value - steps[index - 1][1]])
@@ -65,7 +65,7 @@ export const flattenFlowTimes = <T extends { total: number}> (times: FlowTimes) 
         : acc
     ), {} as T);
 
-  flatten.total = steps[steps.length - 1][1] - steps[0][1];
+  flatten['::total'] = steps.length > 1 ? steps[steps.length - 1][1] - steps[0][1] : 0;
   return flatten;
 }
 
@@ -77,13 +77,17 @@ export const flattenFlowTimes = <T extends { total: number}> (times: FlowTimes) 
 export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredResult> => (
   new Promise(async (resolve) => {
     let lastTime = now();
-    const delta = () => {
+    const delta = (): string => {
       const d = now() - lastTime;
       lastTime = now();
-      return d;
+      const result = String(d);
+      return '...️' + `️    `.substr(0, 5 - result.length) + '+' + result + 'ms';
     }
     const rawDataBlocks = [];
-    const dataBlocks = [];
+    const dataBlocks: Array<{
+      time: number;
+      data: Buffer | string;
+    }> = [];
     const dnsTimes: FlowTimes = {
       start: now(),
     }
@@ -97,19 +101,21 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
 
     const h2 = canUseHTTP2(u.protocol) && options.http2;
 
-    const factory = h2 ? makeHTTP2Request : makeHTTP1Request;
+    const factory: ConnectorFabric = h2 ? makeHTTP2Request : makeHTTP1Request;
 
     options.verbose && console.log('using', h2 ? 'h2' : 'http/1.1');
+
+    const compression = options.compression && options.compression !== 'none' ? options.compression : undefined;
 
     const connection = await factory(
       {
         method: 'GET',
-        compression: options.compression,
+        compression,
         ...cloneURL(u),
         headers: {
           host: options.host || u.host,
           'User-Agent': 'flow-meter',
-          ...(options.compression ? {'Accept-Encoding': COMPRESSION_HEADER[options.compression]} : {}),
+          ...(compression ? {'Accept-Encoding': COMPRESSION_HEADER[compression]} : {}),
         }
       },
       socket => {
@@ -158,10 +164,13 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
       () => {
         options.verbose && console.log(delta(), 'end');
         dataTimes.end = now();
+        //
+        //
+        // console.log(dataBlocks[dataBlocks.length - 1].data.toString());
         resolve({
           preflight: flattenFlowTimes<PreflightMeter>(dnsTimes),
           data: flattenFlowTimes<DataMeter>(dataTimes),
-          html: flattenFlowTimes<HTMLMeter>(htmlTimes),
+          html: flattenFlowTimes<HTMLMeter>({...htmlTimes, streamEnd: now()}),
           bytesReceived,
           rawBytesReceived,
           totalTime: dataTimes.end - dnsTimes.start,
@@ -176,6 +185,6 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
     );
 
     // times.connected = now();
-    options.verbose && console.log(delta(), '>>', url, connection.statusCode, connection.httpVersion, options.compression);
+    options.verbose && console.log(delta(), '>>', url, connection.statusCode, connection.httpVersion, compression);
   })
 );

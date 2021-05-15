@@ -10,12 +10,12 @@ export interface HTMLMeter extends FlowTimes {
   script: number;
   title: number;
   body: number;
+  bodyEnd: number;
   header: number;
   h1: number;
   h2: number;
   footer: number;
-  end: number;
-  total: number;
+  '::total': number;
 }
 
 export const hook = (data: Buffer, times: HTMLMeter) => {
@@ -33,6 +33,9 @@ export const hook = (data: Buffer, times: HTMLMeter) => {
   if (str.indexOf('<body') >= 0 && !times.body) {
     times.body = now();
   }
+  if (str.indexOf('</body>') >= 0 && !times.end) {
+    times.bodyEnd = now();
+  }
   if (str.indexOf('<header') >= 0 && !times.header) {
     times.header = now();
   }
@@ -45,7 +48,5 @@ export const hook = (data: Buffer, times: HTMLMeter) => {
   if (str.indexOf('<footer') >= 0) {
     times.footer = now();
   }
-  if (str.indexOf('</body>') >= 0 && !times.end) {
-    times.end = now();
-  }
+
 }
