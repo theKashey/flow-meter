@@ -10,12 +10,14 @@ program
   .option('-h2, --http2', 'allow http/2', false)
   .addOption(new Option('-c, --compression <algo>', 'compression used').choices(['gzip', 'brotli', 'none']).default('gzip'))
   .option('-v, --verbose', 'prints extra information')
+  .option('-vv', 'verbose level 2')
+  .option('-vvv', 'verbose level 3')
   .option('-h, --host', 'overrides host info')
   .action((url, options) => {
     meter(
       url, {
         http2: options.http2,
-        verbose: options.verbose,
+        verbose: options.Vvv ? 3 : options.Vv ? 2 : options.verbose ? 1 : 0,
         compression: options.compression
       }
     ).then((data) => console.log(JSON.stringify(data, undefined, 2)))

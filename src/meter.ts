@@ -9,7 +9,7 @@ import {hook as htmlHook, HTMLMeter} from './targets/html';
 interface MeterOptions {
   host?: string;
   http2?: boolean;
-  verbose?: boolean;
+  verbose?: number;
   compression?: CompressionOptions;
   onChunk?: (data: Buffer, times: FlowTimes) => void;
   onConsole?: (message: string) => void;
@@ -104,12 +104,13 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
 
     const factory: ConnectorFabric = h2 ? makeHTTP2Request : makeHTTP1Request;
 
-    options.verbose && console.log('using', h2 ? 'h2' : 'http/1.1');
+    const {verbose = 0} = options;
+    verbose && console.log('using', h2 ? 'h2' : 'http/1.1');
 
     const compression = options.compression && options.compression !== 'none' ? options.compression : undefined;
 
-    const report = (message: string): void => {
-      options.verbose && console.log(message);
+    const report = (message: string, level = 1): void => {
+      verbose >= level && console.log(message);
       options.onConsole && options.onConsole(message);
     }
 
@@ -145,6 +146,8 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
         if (!dataTimes.rawFirstByte) {
           dataTimes.rawFirstByte = now();
           report(delta() + ' first byte (' + buffer.length + ' bytes)');
+        } else {
+          report(delta() + ' data chunk (' + buffer.length + ' bytes)',2);
         }
 
         rawBytesReceived += buffer.length;
@@ -157,7 +160,9 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
         if (!dataTimes.firstByte) {
           dataTimes.firstByte = now();
           htmlTimes.firstByte = now();
-          report(delta() + ' readable (' + buffer.length + ' bytes)');
+          report(delta() + ' first readable chunk(' + buffer.length + ' bytes)');
+        } else {
+          report(delta() + ' readable (' + buffer.length + ' bytes)', 3);
         }
         htmlHook(buffer, htmlTimes);
 
@@ -192,6 +197,6 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
     );
 
     // times.connected = now();
-    report(`${delta()} >> ${url} ${connection.statusCode} v${connection.httpVersion} ${compression}`);
+    report(`${delta()} >> ${url} ${connection.statusCode} v${connection.httpVersion} ${compression} (first header)`);
   })
 );
