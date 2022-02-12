@@ -6,6 +6,9 @@
   "bin": {
     "flow-meter": "dist/cli.js"
   },
+  "repository": "https://github.com/theKashey/flow-meter",
+  "author": "theKashey <thekashey@gmail.com>",
+  "homepage": "  https://github.com/theKashey/flow-meter",
   "scripts": {
     "build": "tsc",
     "test": "ts-node ./src/cli.ts",
