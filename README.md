@@ -1,4 +1,4 @@
-Flow Meter (WIP)
+Flow Meter
 ===
 
 HTTP/HTTPS/HTTP2 stream meter
