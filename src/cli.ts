@@ -13,12 +13,14 @@ program
   .option('-vv', 'verbose level 2')
   .option('-vvv', 'verbose level 3')
   .option('-h, --host', 'overrides host info')
+  .addOption(new Option('-m, --marker <markers...>', 'text marker to look for'))
   .action((url, options) => {
     meter(
       url, {
         http2: options.http2,
         verbose: options.Vvv ? 3 : options.Vv ? 2 : options.verbose ? 1 : 0,
-        compression: options.compression
+        compression: options.compression,
+        markers: options.marker,
       }
     ).then((data) => console.log(JSON.stringify(data, undefined, 2)))
       .then(() => process.exit(0))

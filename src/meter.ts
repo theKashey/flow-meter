@@ -1,10 +1,11 @@
 import {ConnectorFabric, makeHTTP1Request, makeHTTP2Request} from "./connections";
 import {canUseHTTP2, cloneURL} from "./utils";
-import {COMPRESSION_HEADER, CompressionOptions} from "./compression";
+import {COMPRESSION_HEADER, CompressionOptions, createCompressor} from "./compression";
 import {now} from "./time";
-import {FlowTimes} from "./types";
+import {DataBlock, FlowTimes} from "./types";
 
 import {hook as htmlHook, HTMLMeter} from './targets/html';
+import {Markers, processMarkers} from "./targets/markers";
 
 interface MeterOptions {
   host?: string;
@@ -13,6 +14,7 @@ interface MeterOptions {
   compression?: CompressionOptions;
   onChunk?: (data: Buffer, times: FlowTimes) => void;
   onConsole?: (message: string) => void;
+  markers?: string[];
 }
 
 /**
@@ -50,6 +52,7 @@ interface MeteredResult {
 
   chunks: number;
   rawChunks: number;
+  markers: Markers;
 }
 
 interface FirstByte {
@@ -84,16 +87,14 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
       const result = String(d);
       return '...️' + `️    `.substr(0, 5 - result.length) + '+' + result + 'ms';
     }
-    const rawDataBlocks = [];
-    const dataBlocks: Array<{
-      time: number;
-      data: Buffer | string;
-    }> = [];
+    const rawDataBlocks: DataBlock[] = [];
+    const dataBlocks: DataBlock[] = [];
     const dnsTimes: FlowTimes = {
       start: now(),
     }
     const dataTimes: FlowTimes & FirstByte = {} as any;
     const htmlTimes: HTMLMeter & FirstByte = {} as any;
+    const markersFound: Markers = {};
 
     let bytesReceived = 0;
     let rawBytesReceived = 0;
@@ -108,6 +109,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
     verbose && console.log('using', h2 ? 'h2' : 'http/1.1');
 
     const compression = options.compression && options.compression !== 'none' ? options.compression : undefined;
+    const compressor = createCompressor(options.compression);
 
     const report = (message: string, level = 1): void => {
       verbose >= level && console.log(message);
@@ -147,7 +149,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
           dataTimes.rawFirstByte = now();
           report(delta() + ' first byte (' + buffer.length + ' bytes)');
         } else {
-          report(delta() + ' data chunk (' + buffer.length + ' bytes)',2);
+          report(delta() + ' data chunk (' + buffer.length + ' bytes)', 2);
         }
 
         rawBytesReceived += buffer.length;
@@ -164,7 +166,7 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
         } else {
           report(delta() + ' readable (' + buffer.length + ' bytes)', 3);
         }
-        htmlHook(buffer, htmlTimes);
+        htmlHook(buffer, options.markers, htmlTimes);
 
         // console.log(buffer.toString());
         bytesReceived += buffer.length;
@@ -176,9 +178,16 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
       () => {
         report(delta() + ' end');
         dataTimes.end = now();
-        //
-        //
-        // console.log(dataBlocks[dataBlocks.length - 1].data.toString());
+
+        const markers = options.markers;
+        if (markers) {
+          const passedBlocks: DataBlock[] = [];
+          dataBlocks.forEach(block => {
+            processMarkers(block.data as Buffer, markersFound, markers, compressor, passedBlocks);
+            passedBlocks.push(block);
+          });
+        }
+
         resolve({
           preflight: flattenFlowTimes<PreflightMeter>(dnsTimes),
           data: flattenFlowTimes<DataMeter>(dataTimes),
@@ -188,11 +197,8 @@ export const meter = (url: string, options: MeterOptions = {}): Promise<MeteredR
           totalTime: dataTimes.end - dnsTimes.start,
           chunks: dataBlocks.length,
           rawChunks: rawDataBlocks.length,
+          markers: markersFound,
         });
-        // {
-        //   headers: times.connected - times.start,
-        //   all: times.end - times.start,
-        // });
       }
     );
 

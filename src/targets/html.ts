@@ -18,7 +18,7 @@ export interface HTMLMeter extends FlowTimes {
   '::total': number;
 }
 
-export const hook = (data: Buffer, times: HTMLMeter) => {
+export const hook = (data: Buffer, markers: string[] | undefined, times: HTMLMeter) => {
   const str = String(data).toLowerCase();
 
   if (str.indexOf('<head') >= 0 && !times.head) {
@@ -49,4 +49,12 @@ export const hook = (data: Buffer, times: HTMLMeter) => {
     times.footer = now();
   }
 
+  if (markers) {
+    markers.forEach(marker => {
+      const key = `>${marker}`;
+      if (!times[key] && str.indexOf(marker) >= 0) {
+        times[key] = now();
+      }
+    })
+  }
 }

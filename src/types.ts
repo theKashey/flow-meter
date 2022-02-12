@@ -5,3 +5,8 @@ export type ChunkCallback = (data: Buffer) => void;
 export type EndCallback = () => void;
 
 export type FlowTimes = Record<string, number>;
+
+export type DataBlock ={
+  time: number;
+  data: Buffer | string;
+};
